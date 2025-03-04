@@ -3,12 +3,21 @@ services:
     build: .
     volumes:
       - ./web:/var/www/html
-      - ./pterodactyl:/var/www/pterodactyl
       - ./logs:/var/log/nginx
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - 9090:80
     container_name: casino_web
+  db:
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: "Ckg8XqnXu5FWq5Hq5KlOpF6Bo3095GSV"
+      MYSQL_DATABASE: casino
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    container_name: casino_db
   server:
     build: server
     volumes:
