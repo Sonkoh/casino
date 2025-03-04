@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    volumes:
+      - ./web:/var/www/html
+      - ./pterodactyl:/var/www/pterodactyl
+      - ./logs:/var/log/nginx
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+      - 9090:80
+    container_name: casino_web
+  server:
+    build: server
+    volumes:
+      - ./server:/app
+    ports:
+      - 8080:8080
