@@ -19,6 +19,8 @@ services:
       - ./mysql-data:/var/lib/mysql
     container_name: casino_db
   server:
+    depends_on:
+      - db
     build: server
     volumes:
       - ./server:/app

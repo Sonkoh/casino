@@ -16,29 +16,34 @@
         <div class="col-md-6">
             <div class="card p-5 mb-5">
                 <h3 class="m-0">Mesas de Poker</h3>
-                <a href="m-0 text-muted">Crear Mesa</a>
+                <a href="m-0 text-muted" data-bs-toggle="modal" data-bs-target="#poker_create_table_modal">Crear Mesa</a>
             </div>
             <div id="poker_tables">
-                <div class="card p-5">
-                    <div class="d-flex gap-4 mb-4">
-                        <div class="rounded-4 bg-light w-75px h-75px d-flex justify-content-center">
-                            <div class="d-flex align-items-center"><img src="/img/pieces.png" class="w-50px"></div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-column">
-                            <h3 class="mb-2">Mesa de Sonkoh</h3>
-                            <div class="symbol-group symbol-hover">
-                                <div class="symbol symbol-35px symbol-circle" data-bs-toggle="tooltip" aria-label="Barry Walter" data-bs-original-title="Barry Walter" data-kt-initialized="1">
-                                    <img alt="Pic" src="/metronic8/demo2/assets/media/avatars/300-12.jpg">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-danger">Unirse</button>
-                </div>
+
             </div>
         </div>
         <div class="col-md-6">
 
+        </div>
+    </div>
+</div>
+@endsection
+@section('modals')
+<div class="modal fade" tabindex="-1" id="poker_create_table_modal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Crear Tabla</h3>
+                <div class="btn btn-icon btn-sm btn-active-light-primary ms-2" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control" placeholder="Ingresa un nombre" autocomplete="off" value="Mesa de {{auth()->user()->username}}" id="modal_table_name">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-dark" onclick="createTable()">Crear</button>
+            </div>
         </div>
     </div>
 </div>
@@ -79,17 +84,58 @@
             });
 
             this.socket.addEventListener('message', (event) => {
-                let response = JSON.parse(event.data);
-                if (response.success && response.response == "auth.login")
-                    this.socket.send(JSON.stringify({
-                        request: "poker.get_tables"
-                    }));
                 console.log('Mensaje recibido:', JSON.parse(event.data));
+                let response = JSON.parse(event.data);
+                switch (response.request) {
+                    case "auth.login":
+                        if (response.success)
+                            this.socket.send(JSON.stringify({
+                                request: "poker.get_tables"
+                            }));
+                        break;
+                    case "notification":
+                        Swal.fire({
+                            text: response.response,
+                            icon: response.success ? "success" : "error"
+                        });
+                        break;
+                    case "poker.create_table":
+                        if (response.success)
+                            window.location.href = `/${response.response}`;
+                        break;
+                    case "poker.get_tables":
+                        $("#poker_tables").html('');
+                        response.response.forEach(table => {
+                            let symbols = "";
+                            table.members.forEach(member => {
+                                console.log(member)
+                                symbols += `<div class="symbol symbol-35px symbol-circle">
+                                                <img alt="${member.user.firstname}" src="${member.user.avatar}">
+                                            </div>`;
+                            });
+                            $("#poker_tables").append(`<div class="card p-5">
+                                <div class="d-flex gap-4 mb-4">
+                                    <div class="rounded-4 bg-light w-75px h-75px d-flex justify-content-center">
+                                        <div class="d-flex align-items-center"><img src="/img/pieces.png" class="w-50px"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-center flex-column">
+                                        <h3 class="mb-2">${table.name}</h3>
+                                        <div class="symbol-group symbol-hover">
+                                            ${symbols}
+                                        </div>
+                                    </div>
+                                </div>
+                                <a class="btn btn-sm btn-danger" href="/${table.id}">Unirse</a>
+                            </div>`);
+                        });
+                        break;
+                }
             });
 
             this.socket.addEventListener('close', () => {
                 $("#lost_connection_alert_title").html("Reintentando conexión");
                 $("#lost_connection_alert_description").html("Se perdió la conexión por unos segundos, reintentando conexión.");
+                $("#poker_tables").html('');
                 $("#lost_connection_alert").fadeIn(500);
                 this.reconnect();
             });
@@ -130,5 +176,14 @@
     }
 
     const ws = new ReconnectingWebSocket('ws://127.0.0.1:8080');
+
+    function createTable() {
+        ws.socket.send(JSON.stringify({
+            "request": "poker.create_table",
+            "data": {
+                name: $("#modal_table_name").val()
+            }
+        }));
+    }
 </script>
 @endsection
