@@ -23,7 +23,7 @@ $disable_sidebar = true;
         transition: ease-in-out 1s;
         position: absolute;
         display: flex;
-        gap: 5px;
+        gap: 6px;
     }
 
     .poker_card img {
@@ -54,13 +54,13 @@ $disable_sidebar = true;
     }
 
     .poker_card.slot-2 {
-        bottom: 45px;
+        bottom: 60px;
         right: 35px;
         transform: rotate(0) translate(-50%, 0);
     }
 
     .poker_card.slot-3 {
-        bottom: 45px;
+        bottom: 60px;
         left: 40px;
     }
 
@@ -87,48 +87,45 @@ $disable_sidebar = true;
     }
 
     .poker_card.slot-7.desk {
-        bottom: calc(100% - 60px);
-        right: 50%;
-        transform: rotate(90deg) translate(50%, -50%);
-        bottom: calc(100% - 60px);
-        right: 50%;
-        transform: rotate(90deg) translate(50%, -50%);
+        bottom: 75%;
+        right: calc(50% - 22px);
     }
 
     .poker_card.slot-1.desk {
-        bottom: calc(100% - 60px);
+        /* bottom: calc(100% - 60px);
         left: 50%;
-        transform: rotate(90deg) translate(50%, 50%);
+        transform: rotate(90deg) translate(50%, 50%); */
+        left: calc(50% - 28px);
+        transform: translate(-50%, 0);
+        bottom: 75%;
     }
 
     .poker_card.slot-2.desk {
-        bottom: calc(100% - 60px);
-        right: 50%;
-        transform: rotate(90deg) translate(50%, -50%);
+        bottom: 75%;
+        right: calc(50% - 22px);
     }
 
     .poker_card.slot-3.desk {
-        bottom: calc(100% - 60px);
-        right: 50%;
-        transform: rotate(90deg) translate(50%, -50%);
+        left: calc(50% - 28px);
+        transform: translate(-50%, 0);
+        bottom: 75%;
     }
 
     .poker_card.slot-4.desk {
-        top: 50px;
-        right: 50%;
-        transform: translate(50%, -50%) rotate(90deg);
+        bottom: 75%;
+        right: calc(50% - 22px);
     }
 
     .poker_card.slot-5.desk {
-        transform: rotate(-90deg) translate(-50%, -50%);
-        bottom: calc(100% - 50px);
-        left: 50%;
+        left: calc(50% - 28px);
+        transform: translate(-50%, 0);
+        bottom: 75%;
     }
 
     .poker_card.slot-6.desk {
-        transform: rotate(-90deg) translate(-50%, 50%);
-        bottom: 166px;
-        left: -2px;
+        left: calc(50% - 28px);
+        transform: translate(-50%, 0);
+        bottom: 75%;
     }
 
     .poker_card.slot .left-card,
@@ -138,11 +135,11 @@ $disable_sidebar = true;
     }
 
     .poker_card.slot:not(.desk-open) .left-card {
-        transform: translateX(0%);
+        transform: translateX(calc(50% + 3px));
     }
 
     .poker_card.slot:not(.desk-open) .right-card {
-        transform: translateX(-125%);
+        transform: translateX(calc(-50% - 3px));
     }
 
     .table-positions {
@@ -228,35 +225,43 @@ $disable_sidebar = true;
                             <img src="" alt="" class="rounded-circle" style="width: 50px;">
                         </div>
                         <div class="card p-1 px-7 position-relative min-w-150px" style="right: .75rem;">
-                            <small class="m-0 text-gray-700">Sonkoh</small>
+                            <small class="m-0 text-gray-700">User</small>
                             <h3 class="m-0 fs-6">$<span class="balance">0</span></h3>
                         </div>
                     </div>
             </div>
             @endfor
-
         </div>
-        <div class="poker_card slot slot-1 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
-        <div class="poker_card slot slot-2 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
-        <div class="poker_card slot slot-3 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
-        <div class="poker_card slot slot-4 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
-        <div class="poker_card slot slot-5 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
-        <div class="poker_card slot slot-6 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
-        <div class="poker_card slot slot-7 desk">
-            <img src="/img/card.png" class="back left-card w-100"> <img src="/img/card.png" class="back right-card w-100">
-        </div>
+            <div class="position-absolute w-100 h-100">
+                <div class="poker_card slot slot-1 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+                <div class="poker_card slot slot-2 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+                <div class="poker_card slot slot-3 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+                <div class="poker_card slot slot-4 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+                <div class="poker_card slot slot-5 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+                <div class="poker_card slot slot-6 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+                <div class="poker_card slot slot-7 desk">
+                    <img src="/img/card.png" class="back left-card w-100">
+                    <img src="/img/card.png" class="back right-card w-100">
+                </div>
+            </div>
     </div>
 </div>
 <div class="d-flex mt-10">
