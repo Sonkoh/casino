@@ -7,11 +7,7 @@ class Member {
         this.position = position;
         this.folded = true;
         this.dealer = false;
-        this.starting = false;
-    }
-
-    assign() {
-
+        this.me = true;
     }
 }
 
@@ -28,7 +24,7 @@ class PokerGame {
     }
 
     createDeck() {
-        const suits = ['♠', '♥', '♦', '♣'];
+        const suits = ["H", "C", "D", "S"];
         const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
         let deck = [];
         suits.forEach(suit => {
@@ -49,14 +45,13 @@ class PokerGame {
 
     dealCards() {
         this.table.members.forEach(member => {
-            setTimeout(() => {
-                member.hand = [this.deck.pop(), this.deck.pop()];
-                member.user.socket.send(JSON.stringify({
-                    "request": "poker.deal_cards",
-                    "success": true,
-                    "response": member.position
-                }));
-            }, 500);
+            member.hand = [this.deck.pop(), this.deck.pop()];
+            member.folded = false;
+            member.user.socket.send(JSON.stringify({
+                "request": "poker.deal_cards",
+                "success": true,
+                "response": this.table.members.map((member) => { return member.position; })
+            }));
         });
     }
 
@@ -65,23 +60,33 @@ class PokerGame {
         this.dealCards();
         this.table.playing = true;
         this.table.description = "Juego en progreso";
-        this.table.update();
-    }
+        let dealerIndex = null
+        this.table.members.forEach(function (member, index) {
+            if (member.dealer)
+                dealerIndex = index;
+        });
 
-    placeBet(member, amount) {
-        if (member.user.attributes.balance >= amount) {
-            member.user.attributes.balance -= amount;
-            this.pot += amount;
-            this.currentBet = Math.max(this.currentBet, amount);
-            this.table.update();
-        } else {
-            console.log("Saldo insuficiente para apostar.");
+        if (dealerIndex == null) {
+            dealerIndex = Math.floor(Math.random() * this.table.members.length);
+            this.table.members[dealerIndex].dealer = true;
         }
+
+        if (this.table.members.length == 2) {
+            this.bet(this.table.members[dealerIndex], this.table.blinds.small);
+            this.bet(this.table.members[(dealerIndex + 1) % this.table.members.length], this.table.blinds.big);
+        } else {
+            this.bet(this.table.members[(dealerIndex + 1) % this.table.members.length], this.table.blinds.small);
+            this.bet(this.table.members[(dealerIndex + 2) % this.table.members.length], this.table.blinds.big);
+        }
+
+        this.table.update();
     }
 
-    nextTurn() {
-        this.turn = (this.turn + 1) % this.table.members.length;
-        this.table.update();
+    bet(member, bet) {
+        this.pot += bet;
+        member.bet += bet;
+        member.user.attributes.balance -= bet;
+        member.user.updateBalance();
     }
 }
 
@@ -93,6 +98,10 @@ class Table {
         this.playing = false;
         this.description = "Esperando Jugadores";
         this.game = null;
+        this.blinds = {
+            "big": 0.1,
+            "small": 0.05
+        }
     }
 
     toJSON() {
@@ -106,7 +115,7 @@ class Table {
     }
 
     join(user) {
-        let available_slots = [5, 6, 2, 1, 4, 3];
+        let available_slots = [1,2,3,4,5,6,7];
         this.members.forEach(member => {
             available_slots = available_slots.filter(slot => { return slot != member.position });
         });
@@ -157,8 +166,26 @@ class Table {
             member.user.socket.send(JSON.stringify({
                 "request": "poker.table_status",
                 "success": true,
-                "response": this
-            }))
+                "response": {
+                    id: this.id,
+                    name: this.name,
+                    members: this.members.map((m) => {
+                        if (m.user.attributes.id == member.user.attributes.id) {
+                            return m;
+                        } else {
+                            return {
+                                me: false,
+                                user: m.user,
+                                position: m.position,
+                                folded: m.folded,
+                                dealer: m.dealer,
+                            };
+                        }
+                    }),
+                    description: this.description,
+                    playing: this.playing
+                }
+            }));
         });
     }
 }

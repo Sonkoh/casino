@@ -73,6 +73,7 @@
 <body data-server="{{ $service['uuid'] ?? '' }}" data-csrf="{{ csrf_token() }}">
     <div class="d-flex flex-column flex-root">
         <div class="docs-page d-flex flex-row flex-column-fluid">
+            @if(empty($disable_sidebar))
             <div id="kt_docs_aside" class="docs-aside" data-kt-drawer="true" data-kt-drawer-name="aside"
                 data-kt-drawer-activate="{default: true, lg: false}" data-kt-drawer-overlay="true"
                 data-kt-drawer-width="{default:'200px', '300px': '250px'}" data-kt-drawer-direction="start"
@@ -111,7 +112,8 @@
                     </div>
                 </div>
             </div>
-            <div class="docs-wrapper d-flex flex-column flex-row-fluid" id="kt_docs_wrapper" @yield('wrapper')>
+            @endif
+            <div class="{{empty($disable_sidebar) ? 'docs-wrapper' : '' }} d-flex flex-column flex-row-fluid" id="kt_docs_wrapper" @yield('wrapper')>
                 @yield('loading')
                 <div id="kt_docs_header" class="docs-header align-items-stretch mb-2 mb-lg-10">
                     <!--begin::Container-->
@@ -128,7 +130,7 @@
 
                             <!--begin::Logo-->
                             <div class="d-flex d-lg-none align-items-center flex-grow-1 flex-lg-grow-0 me-3 me-lg-15">
-                                <a href="/panel">
+                                <a href="/">
                                     <img src="/branding/logo.png" class="h-25px">
                                 </a>
                             </div>
@@ -173,12 +175,8 @@
                                             @auth
                                             <div class="flex-equal text-end">
                                                 <a href="/panel/account" class="btn btn-sm bg-secondary">
-                                                    <div class="d-flex gap-2 text-gray-700">
-                                                        <div class="d-flex"><i
-                                                                class="ki-duotone ki-down m-auto fs-5"><span
-                                                                    class="path1"></span><span
-                                                                    class="path2"></span><span
-                                                                    class="path3"></span></i></div>
+                                                    <div class="d-flex gap-2 text-gray-700"><span id="balance">${{number_format(auth()->user()->balance, 2, ',', ' ')}}</span>
+                                                        <i class="bi bi-chevron-down"></i>
                                                     </div>
                                                 </a>
                                             </div>

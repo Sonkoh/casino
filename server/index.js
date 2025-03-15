@@ -20,6 +20,9 @@ const poker = require('./poker');
         toJSON() {
             return this.attributes;
         }
+        updateBalance() {
+            connection.execute("UPDATE users SET balance=? WHERE id=?", [this.attributes.id, this.attributes.balance]);
+        }
     }
 
     function broadcast(data) {
@@ -58,7 +61,7 @@ const poker = require('./poker');
                 return [true, table.id];
             },
 
-            "poker.join_table": (data) => {
+            "poker.join_table": async (data) => {
                 tables = poker.tables.filter((table) => {
                     return table.id == data.table
                 });
@@ -66,17 +69,42 @@ const poker = require('./poker');
                     return [false, false];
                 }
                 table = tables[0];
-                if (table.members.filter(member => {
+                let tb = table.members.filter(member => {
                     return member.user.attributes.id == user.attributes.id;
-                }).length == 0)
+                });
+                if (tb.length == 0) {
                     table.join(user);
-                table.update();
+                } else {
+                    tb[0].user.socket.close();
+                    tb[0].user = user;
+                }
                 broadcast(JSON.stringify({
                     "request": "poker.get_tables",
                     "success": true,
                     "response": poker.tables
                 }));
-                return [true, table];
+                table.update();
+                return [true, {
+                    id: table.id,
+                    name: table.name,
+                    members: table.members.map((m) => {
+                        if (m.user.attributes.id == user.attributes.id) {
+                            return m;
+                        }
+                        else {
+                            return {
+                                user: m.user,
+                                position: m.position,
+                                folded: m.folded,
+                                dealer: m.dealer,
+                                me: false,
+                            };
+                        }
+                    }),
+                    description: table.description,
+                    playing: table.playing
+                }
+                ];
             },
             "auth.login": async (token) => {
                 const [rows, fields] = await connection.promise().query('SELECT * FROM users WHERE access_id=?', [token]);
@@ -89,7 +117,7 @@ const poker = require('./poker');
                     return [false, false];
                 }
 
-                connection.execute("UPDATE users SET access_id='' WHERE access_id=?", [token]);
+                connection.execute("UPDATE users SET access_id=NULL WHERE access_id=?", [token]);
                 user = new User(rows[0], ws);
                 return [true, "Autenticación exitosa"];
             }
@@ -98,7 +126,6 @@ const poker = require('./poker');
 
         ws.on('message', async (message) => {
             // try {
-            console.log(poker.tables)
             const data = JSON.parse(message);
             const fn = routes[data.request];
             if (!fn) {
