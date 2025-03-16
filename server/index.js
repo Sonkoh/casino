@@ -20,8 +20,8 @@ const poker = require('./poker');
         toJSON() {
             return this.attributes;
         }
-        updateBalance() {
-            connection.execute("UPDATE users SET balance=? WHERE id=?", [this.attributes.id, this.attributes.balance]);
+        async updateBalance() {
+            await connection.promise().execute("UPDATE users SET balance=? WHERE id=?", [this.attributes.balance, this.attributes.id]);
         }
     }
 
@@ -34,6 +34,7 @@ const poker = require('./poker');
     }
 
     server.on('connection', (ws) => {
+        ws.user = 0;
         let user = null;
         console.log('Cliente conectado');
         routes = {
@@ -44,7 +45,7 @@ const poker = require('./poker');
                 is_in_any_table = false;
                 poker.tables.forEach(table => {
                     table.members.forEach(member => {
-                        if (member.user.id == user.id)
+                        if (member.user.id == ws.user.id)
                             is_in_any_table = true;
                     });
                 });
@@ -60,7 +61,78 @@ const poker = require('./poker');
                 poker.tables.push(table);
                 return [true, table.id];
             },
-
+            "poker.bet": async (data) => {
+                tables = poker.tables.filter((table) => {
+                    return table.id == data.table
+                });
+                if (tables.length == 0) {
+                    return [false, false];
+                }
+                table = tables[0];
+                let member = table.members.find(m => {
+                    return m.user.id == ws.user.id;
+                });
+                console.log("+======================+")
+                console.log("table.game.turn: " + table.game.turn)
+                console.log("member.position: " + member.position)
+                console.log("+======================+")
+                await table.game.bet(member, table.game.currentBet - member.bet);
+                table.game.nextTurn();
+                return [true, true];
+            },
+            "poker.check": (data) => {
+                tables = poker.tables.filter((table) => {
+                    return table.id == data.table
+                });
+                if (tables.length == 0) {
+                    return [false, false];
+                }
+                table = tables[0];
+                let member = table.members.find(m => {
+                    return m.user.id == ws.user.id;
+                });
+                console.log("+======================+")
+                console.log("table.game.turn: " + table.game.turn)
+                console.log(member)
+                console.log("+======================+")
+                if (table.game.turn == member.position) 
+                    table.game.nextTurn();
+                return [true, true];
+            },
+            "poker.fold": (data) => {
+                tables = poker.tables.filter((table) => {
+                    return table.id == data.table
+                });
+                if (tables.length == 0) {
+                    return [false, false];
+                }
+                table = tables[0];
+                let member = table.members.filter(m => {
+                    return m.user.id == ws.user.id;
+                })[0];
+                if (table.game.turn == member.position) {
+                    table.game.nextTurn();
+                } else {
+                    member.folded = true;
+                    table.update();
+                }
+                return [true, true];
+            },
+            "poker.show_cards": (data) => {
+                tables = poker.tables.filter((table) => {
+                    return table.id == data.table
+                });
+                if (tables.length == 0) {
+                    return [false, false];
+                }
+                table = tables[0];
+                let member = table.members.filter(m => {
+                    return m.user.id == ws.user.id;
+                })[0];
+                member.show_cards = true;
+                table.update();
+                return [true, true];
+            },
             "poker.join_table": async (data) => {
                 tables = poker.tables.filter((table) => {
                     return table.id == data.table
@@ -70,15 +142,15 @@ const poker = require('./poker');
                 }
                 table = tables[0];
                 let tb = table.members.filter(member => {
-                    return member.user.attributes.id == user.attributes.id;
+                    return member.user.attributes.id == ws.user.attributes.id;
                 });
                 if (tb.length == 0) {
-                    table.join(user);
+                    table.join(ws.user);
                 } else {
                     tb[0].user.socket.close();
-                    tb[0].user = user;
+                    tb[0].user = ws.user;
                 }
-                broadcast(JSON.stringify({
+                await broadcast(JSON.stringify({
                     "request": "poker.get_tables",
                     "success": true,
                     "response": poker.tables
@@ -88,15 +160,15 @@ const poker = require('./poker');
                     id: table.id,
                     name: table.name,
                     members: table.members.map((m) => {
-                        if (m.user.attributes.id == user.attributes.id) {
+                        if (m.user.attributes.id == ws.user.attributes.id) {
                             return m;
-                        }
-                        else {
+                        } else {
                             return {
                                 user: m.user,
                                 position: m.position,
                                 folded: m.folded,
                                 dealer: m.dealer,
+                                bet: m.bet,
                                 me: false,
                             };
                         }
@@ -118,7 +190,7 @@ const poker = require('./poker');
                 }
 
                 connection.execute("UPDATE users SET access_id=NULL WHERE access_id=?", [token]);
-                user = new User(rows[0], ws);
+                ws.user = new User(rows[0], ws);
                 return [true, "Autenticación exitosa"];
             }
 
@@ -136,7 +208,7 @@ const poker = require('./poker');
                 }));
                 return;
             }
-            if (!data.request.startsWith('auth.') && !user) {
+            if (!data.request.startsWith('auth.') && !ws.user) {
                 ws.send(JSON.stringify({
                     "request": data.request,
                     "success": false,

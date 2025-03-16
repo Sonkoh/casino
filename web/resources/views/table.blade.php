@@ -86,43 +86,22 @@ $disable_sidebar = true;
         transform: rotate(0) translate(-50%, 0);
     }
 
+    .poker_card.slot-2.desk,
+    .poker_card.slot-4.desk,
     .poker_card.slot-7.desk {
         bottom: 75%;
         right: calc(50% - 22px);
     }
 
-    .poker_card.slot-1.desk {
-        /* bottom: calc(100% - 60px);
-        left: 50%;
-        transform: rotate(90deg) translate(50%, 50%); */
-        left: calc(50% - 28px);
-        transform: translate(-50%, 0);
-        bottom: 75%;
-    }
-
-    .poker_card.slot-2.desk {
-        bottom: 75%;
-        right: calc(50% - 22px);
-    }
-
-    .poker_card.slot-3.desk {
-        left: calc(50% - 28px);
-        transform: translate(-50%, 0);
-        bottom: 75%;
-    }
-
-    .poker_card.slot-4.desk {
-        bottom: 75%;
-        right: calc(50% - 22px);
-    }
-
-    .poker_card.slot-5.desk {
-        left: calc(50% - 28px);
-        transform: translate(-50%, 0);
-        bottom: 75%;
-    }
-
-    .poker_card.slot-6.desk {
+    .poker_card.slot-1.desk,
+    .poker_card.slot-3.desk,
+    .poker_card.slot-5.desk,
+    .poker_card.slot-6.desk,
+    .poker_card.slot-p1.desk,
+    .poker_card.slot-p2.desk,
+    .poker_card.slot-p3.desk,
+    .poker_card.slot-p4.desk,
+    .poker_card.slot-p5.desk {
         left: calc(50% - 28px);
         transform: translate(-50%, 0);
         bottom: 75%;
@@ -132,6 +111,7 @@ $disable_sidebar = true;
     .poker_card.slot .right-card {
         transition: ease .5s;
         transform: translateX(0);
+        background-color: white;
     }
 
     .poker_card.slot:not(.desk-open) .left-card {
@@ -155,6 +135,25 @@ $disable_sidebar = true;
         position: relative;
         transform: rotateX(90deg);
         transition: ease 1s;
+    }
+
+    .player[data-dealer="true"] .second-card::after {
+        content: "D";
+        position: absolute;
+        left: calc(100% - 10px);
+        background: #000000;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 900;
+        font-size: .8rem;
+        top: 0;
+        transform: translateY(-50%);
     }
 
     .player.active {
@@ -199,6 +198,73 @@ $disable_sidebar = true;
         justify-content: end;
         left: 75px;
     }
+
+    .slot[data-folded="true"] {
+        filter: grayscale(1);
+    }
+
+    .poker_card.slot-p1:not(.desk) {
+        left: calc(50% - 50px * 2.5 - 6px * 2);
+        transform: translateX(calc(-50% - 3px));
+        bottom: 50%;
+    }
+
+    .poker_card.slot-p2:not(.desk) {
+        left: calc(50% - 50px * 1.5 - 6px * 1);
+        transform: translateX(calc(-50% - 3px));
+        bottom: 50%;
+    }
+
+    .poker_card.slot-p3:not(.desk) {
+        left: calc(50% - 50px * 0.5);
+        transform: translateX(calc(-50% - 3px));
+        bottom: 50%;
+    }
+
+    .poker_card.slot-p4:not(.desk) {
+        left: calc(50% + 50px * 0.5 + 6px * 1);
+        transform: translateX(calc(-50% - 3px));
+        bottom: 50%;
+    }
+
+    .poker_card.slot-p5:not(.desk) {
+        left: calc(50% + 50px * 1.5 + 6px * 2);
+        transform: translateX(calc(-50% - 3px));
+        bottom: 50%;
+    }
+
+    .player img {
+        transition: ease 1s;
+    }
+
+    .player[data-folded="true"] img {
+        filter: grayscale(1);
+    }
+
+    .player .second-card::before {
+        transition: cubic-bezier(0.25, 0.79, 0.25, 1) 1s;
+        content: "FOLD";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: white;
+        height: 20px;
+        top: 0;
+        display: flex;
+        align-items: center;
+        padding: 0 2rem;
+        border-radius: .5rem .5rem 0 0;
+        border: 1px solid var(--bs-card-border-color);
+        border-bottom: transparent;
+        font-weight: 600;
+        font-size: .85rem;
+        color: #727272;
+        z-index: -1;
+    }
+
+    .player[data-folded="true"] .second-card::before {
+        top: -20px;
+    }
 </style>
 @endsection
 @section('content')
@@ -216,115 +282,58 @@ $disable_sidebar = true;
     <p class="text-white badge badge-dark mb-5" id="table_description">Esperando Jugadores</p>
     <div class="d-flex justify-content-center h-400px mb-5">
         <div class="poker_table">
+            <div class="position-absolute top-50 start-50 translate-middle" style="font-size: 2rem; font-family: cursive; color: #515151;">Sonkoh's Casino</div>
             <div class="position-absolute w-100 h-100 table-positions" style="z-index: 10;">
-                <div class="position-absolute top-50 start-50 translate-middle" style="font-size: 2rem; font-family: cursive; color: #515151;">Sonkoh's Casino</div>
                 @for($i=1; $i<=7; $i++)
                     <div class="player player-{{$i}}">
                     <div class="d-flex align-items-center">
                         <div class="rounded-circle card p-1 position-relative" style="left: .5rem; z-index:10">
                             <img src="" alt="" class="rounded-circle" style="width: 50px;">
                         </div>
-                        <div class="card p-1 px-7 position-relative min-w-150px" style="right: .75rem;">
-                            <small class="m-0 text-gray-700">User</small>
+                        <div class="card p-1 px-7 position-relative min-w-150px second-card" style="right: .75rem;">
+                            <small class="m-0 text-gray-700 username">User</small>
                             <h3 class="m-0 fs-6">$<span class="balance">0</span></h3>
                         </div>
                     </div>
             </div>
             @endfor
         </div>
-            <div class="position-absolute w-100 h-100">
-                <div class="poker_card slot slot-1 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-                <div class="poker_card slot slot-2 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-                <div class="poker_card slot slot-3 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-                <div class="poker_card slot slot-4 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-                <div class="poker_card slot slot-5 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-                <div class="poker_card slot slot-6 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-                <div class="poker_card slot slot-7 desk">
-                    <img src="/img/card.png" class="back left-card w-100">
-                    <img src="/img/card.png" class="back right-card w-100">
-                </div>
-            </div>
+        <div class="position-absolute w-100 h-100">
+            @for($i=1; $i<=7; $i++)
+                <div class="poker_card slot slot-{{$i}} desk">
+                <img src="/img/card.png" class="back left-card w-100">
+                <img src="/img/card.png" class="back right-card w-100">
+        </div>
+        @endfor
+        @for($i=1; $i<=5; $i++)
+            <div class="poker_card slot slot-p{{6 - $i}} desk">
+            <img src="/img/card.png" class="back left-card w-100">
     </div>
+    @endfor
 </div>
-<div class="d-flex mt-10">
-    <div class="card p-2 m-auto rounded-pill">
-        <div class="d-flex gap-2 rounded-pill bg-light">
-            <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600">BET</button>
-            <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600">CHECK</button>
-            <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600">FOLD</button>
-            <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600">RAISE</button>
+</div>
+</div>
+<div style="display: none;" id="buttons">
+    <div class="d-flex mt-10">
+        <div class="card p-2 m-auto rounded-pill">
+            <div class="d-flex gap-2 rounded-pill bg-light">
+                <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="bet_button">BET</button>
+                <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="check_button">CHECK</button>
+                <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="fold_button">FOLD</button>
+                <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="raise_button">RAISE</button>
+            </div>
         </div>
     </div>
 </div>
-<!-- <div class="row mb-4">
-            <div class="col-6">
-                <h3>Stack:</h3>
-                <span class="btn btn-sm bg-secondary">
-                    <div class="d-flex gap-2 text-gray-700"><span id="balance"></span>
-                        <i class="bi bi-chevron-down d-flex m-auto"></i>
-                    </div>
-                </span>
-            </div>
-            <div class="col-6 d-flex">
-                <div class="bg-light p-5 rounded">
-                <div class="d-flex flex-column text-center">
-                    <div class="d-flex align-items-start justify-content-center">
-                        <span class="fw-bold fs-4 mt-1 me-2">$</span>
-                        <span class="fw-bold fs-3x" id="kt_modal_create_campaign_budget_label"></span>
-                        <span class="fw-bold fs-3x">.00</span>
-                    </div>
-                </div>
-                <button class="btn btn-dark">Apostar</button>
-                </div>
-            </div>
-        </div> -->
-<!-- <div class="d-flex mb-6 gap-4 align-items-center">
-        <div class="d-flex flex-column">
-            <label class="text-start form-label text-start w-100 mb-1">Stack:</label>
-            <span class="btn btn-sm bg-secondary mb-2 w-100px">
-                <div class="d-flex gap-2 text-gray-700"><span id="balance"></span>
-                    <i class="bi bi-chevron-down d-flex m-auto"></i>
-                </div>
-            </span>
-            <button class="btn btn-dark btn-sm w-100px">Fold</button>
-        </div>
-        <div>
-            <div class="bg-light rounded p-4 w-200px">
-                <div class="d-flex flex-column text-center mb-2">
-                    <div class="d-flex align-items-start justify-content-center">
-                        <span class="fw-bold fs-6 mt-1 me-2">$</span>
-                        <span class="fw-bold fs-2x" id="kt_modal_create_campaign_budget_label"></span>
-                        <span class="fw-bold fs-2x">.00</span>
-                    </div>
-                </div>
-                <button class="btn btn-dark btn-sm w-100">Apostar</button>
+<div style="display: none;" id="finish_game">
+    <div class="d-flex mt-10">
+        <div class="card p-2 m-auto rounded-pill">
+            <div class="d-flex gap-2 rounded-pill bg-light">
+                <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="show_cards">SHOW CARDS</button>
             </div>
         </div>
-        <div>
-            <div>
-                <button class="btn btn-dark btn-sm">Fold</button>
-            </div>
-        </div>
-    </div> -->
-<!-- <div id="kt_modal_create_campaign_budget_slider" class="noUi-sm m-auto" style="width: 60%;"></div> -->
+    </div>
+</div>
 </div>
 @endsection
 @section('scripts')
@@ -409,11 +418,18 @@ $disable_sidebar = true;
                             return window.location.href = "/";
                         $("#table_name").html(response.response.name);
                         $("#table_description").html(response.response.description);
-                        response.response.members.forEach(member => {
-                            if (member.me) {
-                                $("#balance").html(`$${member.user.balance}`);
-                            }
-                        })
+
+                        // response.response.members.forEach(member => {
+                        //     $(`.player-${member.position}`).addClass('active');
+                        //     $(`.player-${member.position} img`).attr("src", member.user.avatar);
+                        //     $(`.player-${member.position} .balance`).html(member.user.balance);
+                        //     $(`.player-${member.position} .username`).html(member.user.username);
+                        //     $(`.player-${member.position}`).attr("data-folded", response.response.playing && member.folded);
+                        //     $(`.slot-${member.position}`).attr("data-folded", response.response.playing && member.folded);
+                        //     if (member.me) {
+                        //         $("#balance").html(`$${member.user.balance}`);
+                        //     }
+                        // })
                         $("#tab_loading").fadeOut(500);
                         setTimeout(() => {
                             $("#tab_table").fadeIn(500);
@@ -429,25 +445,77 @@ $disable_sidebar = true;
                     case "poker.table_status":
                         $("#table_name").html(response.response.name);
                         $("#table_description").html(response.response.description);
+
                         $('.player').each((player) => {
                             $(player).removeClass('active');
                         });
+
                         response.response.members.forEach(member => {
+                            $(`.player-${member.position}`).attr("data-dealer", member.dealer);
                             $(`.player-${member.position}`).addClass('active');
                             $(`.player-${member.position} img`).attr("src", member.user.avatar);
                             $(`.player-${member.position} .balance`).html(member.user.balance);
+                            $(`.player-${member.position} .username`).html(`[${member.position}] ${member.user.username}`);
+                            $(`.player-${member.position}`).attr("data-folded", response.response.playing && member.folded);
+                            $(`.slot-${member.position}`).attr("data-folded", response.response.playing && member.folded);
+
                             if (member.me) {
                                 $("#balance").html(`$${member.user.balance}`);
-                            }
-                        })
-                        setTimeout(() => {
-                            response.response.members.forEach(member => {
-                                if (member.hand) {
-                                    $(`.slot-${member.position} .left-card`).attr("src", `/img/cards/${member.hand[0].value}${member.hand[0].suit}.svg`);
-                                    $(`.slot-${member.position} .right-card`).attr("src", `/img/cards/${member.hand[1].value}${member.hand[1].suit}.svg`);
+                                if (response.response.game && response.response.game.turn == member.position) {
+                                    let gamePrice = response.response.game.currentBet - member.bet;
+                                    $("#buttons").fadeIn(500);
+                                    $("#bet_button").html(`BET [$${gamePrice}]`);
+                                    $("#bet_button").prop("disabled", member.balance < gamePrice);
+                                    $("#bet_button").css("display", gamePrice > 0 ? "block" : "none");
+                                    $("#check_button").css("display", gamePrice == 0 ? "block" : "none");
+                                } else {
+                                    $("#buttons").fadeOut(500);
                                 }
-                            })
-                        }, 2000);
+                            }
+                        });
+
+                        (response.response.game ? response.response.game.communityCards : []).forEach((card, index) => {
+                            if ($(`.poker_card.slot-p${index+1}`).hasClass("desk")) {
+                                $(`.poker_card.slot-p${index+1}`).removeClass("desk");
+                                $(`.poker_card.slot-p${index+1}`).css("left", "calc(50% - 50px * 2.5 - 6px * 2)");
+                                new Promise((resolve) => {
+                                    setTimeout(() => {
+                                        $(`.poker_card.slot-p${index+1}`).css("left", "");
+                                        setTimeout(() => {
+                                            $(`.poker_card.slot-p${index+1} img`).css("transform", "rotateY(89deg)");
+                                            setTimeout(() => {
+                                                $(`.poker_card.slot-p${index+1} img`).attr("src", `/img/cards/${card.value}${card.suit}.svg`)
+                                                    .on('load', function() {
+                                                        $(this).css("transform", "");
+                                                    });
+                                            }, 500);
+                                        }, 1000);
+                                    }, 1000);
+                                });
+                            }
+                        });
+
+                        new Promise((resolve) => {
+                            setTimeout(() => {
+                                response.response.members.forEach(member => {
+                                    if (member.hand && $(`.slot-${member.position} .left-card`).attr("src") != `/img/cards/${member.hand[0].value}${member.hand[0].suit}.svg`) {
+                                        $(`.slot-${member.position} .left-card`).css("transform", "rotateY(89deg)");
+                                        $(`.slot-${member.position} .right-card`).css("transform", "rotateY(89deg)");
+                                        setTimeout(() => {
+                                            $(`.slot-${member.position} .left-card`).attr("src", `/img/cards/${member.hand[0].value}${member.hand[0].suit}.svg`)
+                                                .on('load', function() {
+                                                    $(this).css("transform", "");
+                                                });
+                                            $(`.slot-${member.position} .right-card`).attr("src", `/img/cards/${member.hand[1].value}${member.hand[1].suit}.svg`)
+                                                .on('load', function() {
+                                                    $(this).css("transform", "");
+                                                });
+                                        }, 500);
+                                    }
+                                })
+                                resolve();
+                            }, 2000);
+                        });
                         break;
                     case "poker.deal_cards":
                         response.response.forEach(slot => {
@@ -456,6 +524,10 @@ $disable_sidebar = true;
                                 $(`.slot-${slot}`).addClass("desk-open");
                             }, 1000);
                         });
+                        break;
+                    case "poker.finish_game":
+                        $("#buttons").fadeOut(500);
+                        $("#finish_game").fadeIn(500);
                         break;
                 }
             });
@@ -500,5 +572,48 @@ $disable_sidebar = true;
     }
 
     const ws = new ReconnectingWebSocket('ws://127.0.0.1:8080');
+
+    $("#bet_button").click(function(e) {
+        e.preventDefault();
+        ws.socket.send(JSON.stringify({
+            request: "poker.bet",
+            data: {
+                table: "{{$table}}"
+            }
+        }));
+    });
+
+    $("#check_button").click(function(e) {
+        e.preventDefault();
+        $("#buttons").fadeOut(500);
+        ws.socket.send(JSON.stringify({
+            request: "poker.check",
+            data: {
+                table: "{{$table}}"
+            }
+        }));
+    });
+
+    $("#show_cards").click(function(e) {
+        e.preventDefault();
+        $("#finish_game").fadeOut(500);
+        ws.socket.send(JSON.stringify({
+            request: "poker.show_cards",
+            data: {
+                table: "{{$table}}"
+            }
+        }));
+    });
+
+    $("#fold_button").click(function(e) {
+        e.preventDefault();
+        $("#buttons").fadeOut(500);
+        ws.socket.send(JSON.stringify({
+            request: "poker.fold",
+            data: {
+                table: "{{$table}}"
+            }
+        }));
+    });
 </script>
 @endsection

@@ -8,6 +8,8 @@ class Member {
         this.folded = true;
         this.dealer = false;
         this.me = true;
+        this.show_cards = false;
+        this.bet = 0;
     }
 }
 
@@ -16,11 +18,22 @@ class PokerGame {
         this.id = uuidv4();
         this.table = table;
         this.pot = 0;
-        this.currentBet = 0;
-        this.turn = 0;
+        this.currentBet = this.table.blinds.big;
+        this.turn = false;
         this.deck = this.createDeck();
         this.communityCards = [];
         this.started = false;
+    }
+
+    toJSON() {
+        return {
+            id: this.id,
+            pot: this.pot,
+            currentBet: this.currentBet,
+            turn: this.turn,
+            started: this.started,
+            communityCards: this.communityCards,
+        };
     }
 
     createDeck() {
@@ -80,13 +93,65 @@ class PokerGame {
         }
 
         this.table.update();
+        setTimeout(() => {
+            this.turn = this.table.members[(dealerIndex + (this.table.members.length == 2 ? 0 : 3)) % this.table.members.length].position;
+            this.table.update();
+        }, 2000);
     }
 
-    bet(member, bet) {
+    nextGameStep() {
+        let newRound = true;
+        if (this.communityCards.length == 0) {
+            this.communityCards = [this.deck.pop(), this.deck.pop(), this.deck.pop()];
+        } else if (this.communityCards.length < 5) {
+            this.communityCards.push(this.deck.pop());
+        } else {
+            newRound = false;
+            this.turn = false;
+            this.table.members.forEach(member => {
+                if (!member.folded)
+                    member.user.socket.send(JSON.stringify({
+                        "request": "poker.finish_game",
+                        "success": true
+                    }));
+            });
+        }
+        this.table.update();
+        if (newRound)
+            new Promise((resolve) => {
+                setTimeout(() => {
+                    this.turn = this.table.members.filter(member => {
+                        return member.dealer
+                    })[0].position;
+                    this.table.update();
+                    resolve();
+                }, 2000);
+            })
+    }
+
+    nextTurn() {
+        console.log("next_turn")
+        const members = this.table.members.sort((a, b) => a.position - b.position);
+        const nextMember = members.find(member => member.position > this.turn) || members[0];
+        if (nextMember.dealer) {
+            this.turn = false;
+            this.nextGameStep();
+            return;
+        }
+        if (nextMember.folded)
+            this.nextTurn();
+        this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
+        console.log(nextMember)
+        this.turn = nextMember.position;
+        console.log("Turno de: " + nextMember.position)
+        this.table.update();
+    }
+
+    async bet(member, bet) {
         this.pot += bet;
         member.bet += bet;
         member.user.attributes.balance -= bet;
-        member.user.updateBalance();
+        await member.user.updateBalance();
     }
 }
 
@@ -99,8 +164,8 @@ class Table {
         this.description = "Esperando Jugadores";
         this.game = null;
         this.blinds = {
-            "big": 0.1,
-            "small": 0.05
+            big: 20,
+            small: 10
         }
     }
 
@@ -110,12 +175,13 @@ class Table {
             name: this.name,
             members: this.members,
             description: this.description,
-            playing: this.playing
+            playing: this.playing,
+            game: this.game
         };
     }
 
     join(user) {
-        let available_slots = [1,2,3,4,5,6,7];
+        let available_slots = [1, 2, 3, 4, 5, 6, 7];
         this.members.forEach(member => {
             available_slots = available_slots.filter(slot => { return slot != member.position });
         });
@@ -170,20 +236,19 @@ class Table {
                     id: this.id,
                     name: this.name,
                     members: this.members.map((m) => {
-                        if (m.user.attributes.id == member.user.attributes.id) {
-                            return m;
-                        } else {
-                            return {
-                                me: false,
-                                user: m.user,
-                                position: m.position,
-                                folded: m.folded,
-                                dealer: m.dealer,
-                            };
+                        return {
+                            me: m.user.attributes.id == member.user.attributes.id,
+                            user: m.user,
+                            bet: m.bet,
+                            hand: m.show_cards || m.user.attributes.id == member.user.attributes.id ? m.hand : undefined,
+                            position: m.position,
+                            folded: m.folded,
+                            dealer: m.dealer,
                         }
                     }),
                     description: this.description,
-                    playing: this.playing
+                    playing: this.playing,
+                    game: this.game
                 }
             }));
         });
