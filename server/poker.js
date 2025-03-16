@@ -14,6 +14,19 @@ class Member {
 }
 
 class PokerGame {
+    hands = {
+        10: 'Escalera Real',
+        9: 'Escalera de Color',
+        8: 'Poker',
+        7: 'Full House',
+        6: 'Color',
+        5: 'Escalera',
+        4: 'Trío',
+        3: 'Doble pareja',
+        2: 'Pareja',
+        1: 'Carta alta'
+    };
+
     constructor(table) {
         this.id = uuidv4();
         this.table = table;
@@ -34,6 +47,75 @@ class PokerGame {
             started: this.started,
             communityCards: this.communityCards,
         };
+    }
+
+    checkHand(member) {
+        cards = member.hand.concat(this.communityCards);
+        const values = cards.map(card => card.value);
+        const suits = cards.map(card => card.suit);
+
+        const sortedValues = values.slice().sort((a, b) => a - b);
+        const uniqueValues = [...new Set(sortedValues)];
+
+        const isFlush = suits.every(suit => suit === suits[0]);
+        const isStraight = uniqueValues.length === 5 &&
+            uniqueValues[4] - uniqueValues[0] === 4;
+
+        const counts = values.reduce((acc, value) => {
+            acc[value] = (acc[value] || 0) + 1;
+            return acc;
+        }, {});
+
+        const pairs = Object.values(counts).filter(count => count === 2).length;
+        const threeOfKind = Object.values(counts).includes(3);
+        const fourOfKind = Object.values(counts).includes(4);
+
+        let handRank = 0;
+        let highCards = [];
+
+        if (isFlush && isStraight && sortedValues[0] === 10) {
+            handRank = 10; // Escalera Real
+            highCards = [14];
+        } else if (isFlush && isStraight) {
+            handRank = 9; // Escalera de Color
+            highCards = [Math.max(...uniqueValues)];
+        } else if (fourOfKind) {
+            handRank = 8; // Poker
+            const fourValue = Object.keys(counts).find(v => counts[v] === 4);
+            highCards = [Number(fourValue), Math.max(...uniqueValues.filter(v => v != fourValue))];
+        } else if (threeOfKind && pairs === 1) {
+            handRank = 7; // Full House
+            const threeValue = Object.keys(counts).find(v => counts[v] === 3);
+            const pairValue = Object.keys(counts).find(v => counts[v] === 2);
+            highCards = [Number(threeValue), Number(pairValue)];
+        } else if (isFlush) {
+            handRank = 6; // Color
+            highCards = sortedValues.slice().reverse();
+        } else if (isStraight) {
+            handRank = 5; // Escalera
+            highCards = [Math.max(...uniqueValues)];
+        } else if (threeOfKind) {
+            handRank = 4; // Trío
+            const threeValue = Object.keys(counts).find(v => counts[v] === 3);
+            highCards = [Number(threeValue), ...sortedValues.filter(v => v != threeValue).reverse()];
+        } else if (pairs === 2) {
+            handRank = 3; // Doble pareja
+            const pairValues = Object.keys(counts)
+                .filter(v => counts[v] === 2)
+                .map(Number)
+                .sort((a, b) => b - a);
+            const kicker = Math.max(...uniqueValues.filter(v => !pairValues.includes(v)));
+            highCards = [...pairValues, kicker];
+        } else if (pairs === 1) {
+            handRank = 2; // Pareja
+            const pairValue = Object.keys(counts).find(v => counts[v] === 2);
+            highCards = [Number(pairValue), ...sortedValues.filter(v => v != pairValue).reverse()];
+        } else {
+            handRank = 1; // Carta alta
+            highCards = sortedValues.slice().reverse();
+        }
+
+        return { rank: handRank, highCards };
     }
 
     createDeck() {
@@ -141,7 +223,7 @@ class PokerGame {
         if (nextMember.folded)
             this.nextTurn();
         this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
-        console.log(nextMember)
+        // console.log(nextMember)
         this.turn = nextMember.position;
         console.log("Turno de: " + nextMember.position)
         this.table.update();
@@ -240,6 +322,7 @@ class Table {
                             me: m.user.attributes.id == member.user.attributes.id,
                             user: m.user,
                             bet: m.bet,
+                            show_cards: m.show_cards,
                             hand: m.show_cards || m.user.attributes.id == member.user.attributes.id ? m.hand : undefined,
                             position: m.position,
                             folded: m.folded,

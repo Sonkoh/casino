@@ -16,7 +16,7 @@
         <div class="col-md-6">
             <div class="card p-5 mb-5">
                 <h3 class="m-0">Mesas de Poker</h3>
-                <a href="m-0 text-muted" data-bs-toggle="modal" data-bs-target="#poker_create_table_modal">Crear Mesa</a>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#poker_create_table_modal">Crear Mesa</a>
             </div>
             <div id="poker_tables">
 

@@ -265,6 +265,45 @@ $disable_sidebar = true;
     .player[data-folded="true"] .second-card::before {
         top: -20px;
     }
+
+    .poker_card.desk-open[data-showing="true"] .left-card {
+        transform: rotate(-5deg);
+    }
+
+    .poker_card.desk-open[data-showing="true"] .right-card {
+        transform: rotate(5deg);
+    }
+
+    .poker_card.desk-open.slot-1[data-showing="true"] {
+        transform: rotate(0) translate(-50%, 0) rotate3d(1, 0, 0, 45deg);
+    }
+
+    .player[data-turn="true"] .player-avatar .a {
+        position: absolute;
+        top: .5rem;
+        left: .5rem;
+        width: calc(100% - 1rem);
+        height: calc(100% - 1rem);
+        overflow: hidden;
+        border-radius: 50%;
+    }
+
+    .player[data-turn="true"] .player-avatar .b {
+        height: 100%;
+        background: rgba(255, 255, 255, .8);
+        margin-top: 100%;
+        animation: turn linear 30s;
+    }
+
+    @keyframes turn {
+        from {
+            margin-top: 0;
+        }
+
+        to {
+            margin-top: 100%;
+        }
+    }
 </style>
 @endsection
 @section('content')
@@ -287,8 +326,11 @@ $disable_sidebar = true;
                 @for($i=1; $i<=7; $i++)
                     <div class="player player-{{$i}}">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle card p-1 position-relative" style="left: .5rem; z-index:10">
-                            <img src="" alt="" class="rounded-circle" style="width: 50px;">
+                        <div class="rounded-circle card p-1 position-relative player-avatar" style="left: .5rem; z-index:10; width: 50px">
+                            <img class="rounded-circle position-relative" style="width: 100%;">
+                            <div class="a">
+                                <div class="b"></div>
+                            </div>
                         </div>
                         <div class="card p-1 px-7 position-relative min-w-150px second-card" style="right: .75rem;">
                             <small class="m-0 text-gray-700 username">User</small>
@@ -457,9 +499,13 @@ $disable_sidebar = true;
                             $(`.player-${member.position} .balance`).html(member.user.balance);
                             $(`.player-${member.position} .username`).html(`[${member.position}] ${member.user.username}`);
                             $(`.player-${member.position}`).attr("data-folded", response.response.playing && member.folded);
+                            $(`.player-${member.position}`).attr("data-turn", response.response.game && response.response.game.turn == member.position);
                             $(`.slot-${member.position}`).attr("data-folded", response.response.playing && member.folded);
+                            $(`.slot-${member.position}`).attr("data-showing", member.show_cards);
 
                             if (member.me) {
+                                $(`.player-${member.position} .player-avatar`).css("background-color", "#ff7f00");
+
                                 $("#balance").html(`$${member.user.balance}`);
                                 if (response.response.game && response.response.game.turn == member.position) {
                                     let gamePrice = response.response.game.currentBet - member.bet;
