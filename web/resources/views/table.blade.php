@@ -243,7 +243,8 @@ $disable_sidebar = true;
 
     .player .second-card::before {
         transition: cubic-bezier(0.25, 0.79, 0.25, 1) 1s;
-        content: "FOLD";
+        content: var(--hand);
+        white-space: nowrap;
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
@@ -262,7 +263,10 @@ $disable_sidebar = true;
         z-index: -1;
     }
 
-    .player[data-folded="true"] .second-card::before {
+
+    .player[data-folded="true"] .second-card::before,
+    .player[data-showing="true"] .second-card::before,
+    .player[data-playing="true"] .second-card::before {
         top: -20px;
     }
 
@@ -316,7 +320,7 @@ $disable_sidebar = true;
         <p class="text-muted">Conectando al servidor.</p>
     </div>
 </div>
-<div class="container text-center mt-5" id="tab_table" style="display: none;">
+<div class="container text-center mt-5" id="tab_table" style="display: none; transform: scale(1.5);">
     <h3 id="table_name">Nombre de la Mesa</h3>
     <p class="text-white badge badge-dark mb-5" id="table_description">Esperando Jugadores</p>
     <div class="d-flex justify-content-center h-400px mb-5">
@@ -324,7 +328,7 @@ $disable_sidebar = true;
             <div class="position-absolute top-50 start-50 translate-middle" style="font-size: 2rem; font-family: cursive; color: #515151;">Sonkoh's Casino</div>
             <div class="position-absolute w-100 h-100 table-positions" style="z-index: 10;">
                 @for($i=1; $i<=7; $i++)
-                    <div class="player player-{{$i}}">
+                    <div class="player player-{{$i}}" style="--hand: ''">
                     <div class="d-flex align-items-center">
                         <div class="rounded-circle card p-1 position-relative player-avatar" style="left: .5rem; z-index:10; width: 50px">
                             <img class="rounded-circle position-relative" style="width: 100%;">
@@ -343,20 +347,23 @@ $disable_sidebar = true;
         <div class="position-absolute w-100 h-100">
             @for($i=1; $i<=7; $i++)
                 <div class="poker_card slot slot-{{$i}} desk">
-                <img src="/img/card.png" class="back left-card w-100">
-                <img src="/img/card.png" class="back right-card w-100">
+                <img src="/img/card.png" class="back left-card w-100" id="crd_hand.{{$i}}.left">
+                <img src="/img/card.png" class="back right-card w-100" id="crd_hand.{{$i}}.right">
         </div>
         @endfor
         @for($i=1; $i<=5; $i++)
             <div class="poker_card slot slot-p{{6 - $i}} desk">
-            <img src="/img/card.png" class="back left-card w-100">
+            <img src="/img/card.png" class="back left-card w-100" id="crd_table.{{6 - $i}}">
     </div>
     @endfor
 </div>
 </div>
 </div>
-<div style="display: none;" id="buttons">
-    <div class="d-flex mt-10">
+<div style="display: none;" id="buttons" class="mt-10">
+    <div class="card p-5 rounded-pill m-auto" style="width: 500px;">
+        <div id="kt_modal_create_campaign_budget_slider" class="noUi-sm w-100"></div>
+    </div>
+    <div class="d-flex mt-4">
         <div class="card p-2 m-auto rounded-pill">
             <div class="d-flex gap-2 rounded-pill bg-light">
                 <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="bet_button">BET</button>
@@ -384,11 +391,16 @@ $disable_sidebar = true;
     var budgetValue = document.querySelector("#kt_modal_create_campaign_budget_label");
 
     noUiSlider.create(budgetSlider, {
-        start: [5],
+        start: [30],
         connect: true,
         range: {
             "min": 1,
             "max": 500
+        },
+        pips: {
+            mode: "values",
+            values: [20, 80],
+            density: 4
         }
     });
 
@@ -500,10 +512,15 @@ $disable_sidebar = true;
                             $(`.player-${member.position} .username`).html(`[${member.position}] ${member.user.username}`);
                             $(`.player-${member.position}`).attr("data-folded", response.response.playing && member.folded);
                             $(`.player-${member.position}`).attr("data-turn", response.response.game && response.response.game.turn == member.position);
+                            $(`.player-${member.position}`).attr("data-showing", member.show_cards);
                             $(`.slot-${member.position}`).attr("data-folded", response.response.playing && member.folded);
-                            $(`.slot-${member.position}`).attr("data-showing", member.show_cards);
+                            console.log(member);
+                            if ((response.response.playing && member.hand && member.me) || (response.response.playing && member.folded) || (response.response.playing && member.hand && member.show_cards)) {
+                                $(`.player-${member.position}`).css("--hand", `'${response.response.playing && member.folded ? 'FOLD' : ''}${member.hand ? (member.folded ? ': ' : '')+member.hand_value.hand : ''}'` ?? "'FOLD'");
+                            }
 
                             if (member.me) {
+                                $(`.player-${member.position}`).attr("data-playing", response.response.playing);
                                 $(`.player-${member.position} .player-avatar`).css("background-color", "#ff7f00");
 
                                 $("#balance").html(`$${member.user.balance}`);
@@ -517,6 +534,13 @@ $disable_sidebar = true;
                                 } else {
                                     $("#buttons").fadeOut(500);
                                 }
+                                $(".poker_card img").each((inx, el) => {
+                                    $(el).css("background", "white");
+                                });
+                                if (member.hand_value && member.hand_value.cards)
+                                    member.hand_value.cards.forEach((card) => {
+                                        document.getElementById(`crd_${card.position}`).style.background = "rgb(255, 127, 0)";
+                                    });
                             }
                         });
 
@@ -556,6 +580,7 @@ $disable_sidebar = true;
                                                 .on('load', function() {
                                                     $(this).css("transform", "");
                                                 });
+
                                         }, 500);
                                     }
                                 })

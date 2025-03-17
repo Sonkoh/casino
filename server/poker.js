@@ -13,20 +13,18 @@ class Member {
     }
 }
 
-class PokerGame {
-    hands = {
-        10: 'Escalera Real',
-        9: 'Escalera de Color',
-        8: 'Poker',
-        7: 'Full House',
-        6: 'Color',
-        5: 'Escalera',
-        4: 'Trío',
-        3: 'Doble pareja',
-        2: 'Pareja',
-        1: 'Carta alta'
-    };
+class Card {
+    constructor(suit, value) {
+        this.suit = suit;
+        this.value = value;
+    }
 
+    setPosition(position) {
+        this.position = position;
+    }
+}
+
+class PokerGame {
     constructor(table) {
         this.id = uuidv4();
         this.table = table;
@@ -50,72 +48,145 @@ class PokerGame {
     }
 
     checkHand(member) {
-        cards = member.hand.concat(this.communityCards);
-        const values = cards.map(card => card.value);
-        const suits = cards.map(card => card.suit);
-
-        const sortedValues = values.slice().sort((a, b) => a - b);
-        const uniqueValues = [...new Set(sortedValues)];
-
-        const isFlush = suits.every(suit => suit === suits[0]);
-        const isStraight = uniqueValues.length === 5 &&
-            uniqueValues[4] - uniqueValues[0] === 4;
-
-        const counts = values.reduce((acc, value) => {
-            acc[value] = (acc[value] || 0) + 1;
-            return acc;
-        }, {});
-
-        const pairs = Object.values(counts).filter(count => count === 2).length;
-        const threeOfKind = Object.values(counts).includes(3);
-        const fourOfKind = Object.values(counts).includes(4);
-
-        let handRank = 0;
-        let highCards = [];
-
-        if (isFlush && isStraight && sortedValues[0] === 10) {
-            handRank = 10; // Escalera Real
-            highCards = [14];
-        } else if (isFlush && isStraight) {
-            handRank = 9; // Escalera de Color
-            highCards = [Math.max(...uniqueValues)];
-        } else if (fourOfKind) {
-            handRank = 8; // Poker
-            const fourValue = Object.keys(counts).find(v => counts[v] === 4);
-            highCards = [Number(fourValue), Math.max(...uniqueValues.filter(v => v != fourValue))];
-        } else if (threeOfKind && pairs === 1) {
-            handRank = 7; // Full House
-            const threeValue = Object.keys(counts).find(v => counts[v] === 3);
-            const pairValue = Object.keys(counts).find(v => counts[v] === 2);
-            highCards = [Number(threeValue), Number(pairValue)];
-        } else if (isFlush) {
-            handRank = 6; // Color
-            highCards = sortedValues.slice().reverse();
-        } else if (isStraight) {
-            handRank = 5; // Escalera
-            highCards = [Math.max(...uniqueValues)];
-        } else if (threeOfKind) {
-            handRank = 4; // Trío
-            const threeValue = Object.keys(counts).find(v => counts[v] === 3);
-            highCards = [Number(threeValue), ...sortedValues.filter(v => v != threeValue).reverse()];
-        } else if (pairs === 2) {
-            handRank = 3; // Doble pareja
-            const pairValues = Object.keys(counts)
-                .filter(v => counts[v] === 2)
-                .map(Number)
-                .sort((a, b) => b - a);
-            const kicker = Math.max(...uniqueValues.filter(v => !pairValues.includes(v)));
-            highCards = [...pairValues, kicker];
-        } else if (pairs === 1) {
-            handRank = 2; // Pareja
-            const pairValue = Object.keys(counts).find(v => counts[v] === 2);
-            highCards = [Number(pairValue), ...sortedValues.filter(v => v != pairValue).reverse()];
-        } else {
-            handRank = 1; // Carta alta
-            highCards = sortedValues.slice().reverse();
+        let cards = member.hand.concat(this.communityCards);
+        const valuesMap = {
+            '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+            '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
+        };
+    
+        const sortedCards = cards
+            .map(card => ({ ...card, numericValue: valuesMap[card.value] }))
+            .sort((a, b) => b.numericValue - a.numericValue);
+    
+        const countBy = (key) => {
+            return sortedCards.reduce((acc, card) => {
+                acc[card[key]] = (acc[card[key]] || 0) + 1;
+                return acc;
+            }, {});
+        };
+    
+        const valuesCount = countBy('numericValue');
+        const suitsCount = countBy('suit');
+    
+        // 🃏 Revisar escalera
+        const isStraight = () => {
+            const uniqueValues = [...new Set(sortedCards.map(c => c.numericValue))];
+            for (let i = 0; i <= uniqueValues.length - 5; i++) {
+                if (uniqueValues[i] - uniqueValues[i + 4] === 4) {
+                    return sortedCards.filter(c => 
+                        uniqueValues.slice(i, i + 5).includes(c.numericValue)
+                    ).slice(0, 5);
+                }
+            }
+            // Caso especial para la escalera baja (A, 2, 3, 4, 5)
+            const lowStraight = [14, 2, 3, 4, 5];
+            if (lowStraight.every(v => uniqueValues.includes(v))) {
+                return sortedCards.filter(c => lowStraight.includes(c.numericValue)).slice(0, 5);
+            }
+            return null;
+        };
+    
+        // 🃏 Revisar color
+        const isFlush = () => {
+            for (const suit in suitsCount) {
+                if (suitsCount[suit] >= 5) {
+                    return sortedCards.filter(c => c.suit === suit).slice(0, 5);
+                }
+            }
+            return null;
+        };
+    
+        // 🃏 Revisar pares, tríos y poker
+        const findPairs = () => {
+            const pairs = [];
+            const trips = [];
+            let four = null;
+            for (const value in valuesCount) {
+                if (valuesCount[value] === 2) pairs.push(parseInt(value));
+                if (valuesCount[value] === 3) trips.push(parseInt(value));
+                if (valuesCount[value] === 4) four = parseInt(value);
+            }
+            return { pairs, trips, four };
+        };
+    
+        // Evaluar combinaciones
+        const { pairs, trips, four } = findPairs();
+        const flush = isFlush();
+        const straight = isStraight();
+    
+        // ♠️♣️♥️♦️ Escalera de color
+        if (flush && straight) {
+            return {
+                hand: 'Straight Flush',
+                cards: straight
+            };
         }
-
-        return { rank: handRank, highCards };
+    
+        // 👑 Poker
+        if (four) {
+            return {
+                hand: 'Four of a Kind',
+                cards: sortedCards.filter(c => c.numericValue === four)
+            };
+        }
+    
+        // 🏠 Full House
+        if (trips.length && pairs.length) {
+            return {
+                hand: 'Full House',
+                cards: sortedCards.filter(c =>
+                    c.numericValue === trips[0] || c.numericValue === pairs[0]
+                )
+            };
+        }
+    
+        // 🌈 Color
+        if (flush) {
+            return {
+                hand: 'Flush',
+                cards: flush
+            };
+        }
+    
+        // ➡️ Escalera
+        if (straight) {
+            return {
+                hand: 'Straight',
+                cards: straight
+            };
+        }
+    
+        // 👌 Trío
+        if (trips.length) {
+            return {
+                hand: 'Three of a Kind',
+                cards: sortedCards.filter(c => c.numericValue === trips[0])
+            };
+        }
+    
+        // ✌️ Doble par
+        if (pairs.length >= 2) {
+            return {
+                hand: 'Two Pair',
+                cards: sortedCards.filter(c =>
+                    c.numericValue === pairs[0] || c.numericValue === pairs[1]
+                )
+            };
+        }
+    
+        // ➡️ Par
+        if (pairs.length) {
+            return {
+                hand: 'Pair',
+                cards: sortedCards.filter(c => c.numericValue === pairs[0])
+            };
+        }
+    
+        // 🃏 Carta más alta
+        return {
+            hand: 'High Card',
+            cards: [sortedCards.slice(0, 5)[0]]
+        };
     }
 
     createDeck() {
@@ -124,7 +195,7 @@ class PokerGame {
         let deck = [];
         suits.forEach(suit => {
             values.forEach(value => {
-                deck.push({ suit, value });
+                deck.push(new Card(suit, value));
             });
         });
         return this.shuffle(deck);
@@ -141,6 +212,8 @@ class PokerGame {
     dealCards() {
         this.table.members.forEach(member => {
             member.hand = [this.deck.pop(), this.deck.pop()];
+            member.hand[0].setPosition(`hand.${member.position}.left`);
+            member.hand[1].setPosition(`hand.${member.position}.right`);
             member.folded = false;
             member.user.socket.send(JSON.stringify({
                 "request": "poker.deal_cards",
@@ -185,8 +258,12 @@ class PokerGame {
         let newRound = true;
         if (this.communityCards.length == 0) {
             this.communityCards = [this.deck.pop(), this.deck.pop(), this.deck.pop()];
+            this.communityCards[0].setPosition(`table.1`);
+            this.communityCards[1].setPosition(`table.2`);
+            this.communityCards[2].setPosition(`table.3`);
         } else if (this.communityCards.length < 5) {
             this.communityCards.push(this.deck.pop());
+            this.communityCards[this.communityCards.length - 1].setPosition(`table.${this.communityCards.length}`);
         } else {
             newRound = false;
             this.turn = false;
@@ -212,7 +289,6 @@ class PokerGame {
     }
 
     nextTurn() {
-        console.log("next_turn")
         const members = this.table.members.sort((a, b) => a.position - b.position);
         const nextMember = members.find(member => member.position > this.turn) || members[0];
         if (nextMember.dealer) {
@@ -223,9 +299,7 @@ class PokerGame {
         if (nextMember.folded)
             this.nextTurn();
         this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
-        // console.log(nextMember)
         this.turn = nextMember.position;
-        console.log("Turno de: " + nextMember.position)
         this.table.update();
     }
 
@@ -327,6 +401,7 @@ class Table {
                             position: m.position,
                             folded: m.folded,
                             dealer: m.dealer,
+                            hand_value: (m.show_cards || m.user.attributes.id == member.user.attributes.id) && this.game ? this.game.checkHand(m) : undefined
                         }
                     }),
                     description: this.description,

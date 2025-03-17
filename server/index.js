@@ -69,11 +69,6 @@ const poker = require('./poker');
             let member = table.members.find(m => {
                 return m.user.attributes.id == ws.user.attributes.id;
             });
-            console.log(member);
-            // console.log("+======================+")
-            // console.log("table.game.turn: " + table.game.turn)
-            // console.log("member.position: " + member.position)
-            // console.log("+======================+")
             await table.game.bet(member, table.game.currentBet - member.bet);
             table.game.nextTurn();
             return [true, true];
@@ -86,11 +81,9 @@ const poker = require('./poker');
                 return [false, false];
             }
             table = tables[0];
-            console.log(ws.user.attributes.id)
             let member = table.members.find(m => {
                 return m.user.attributes.id == ws.user.attributes.id;
             });
-            // console.log(member);
             if (table.game.turn == member.position)
                 table.game.nextTurn();
             return [true, true];
@@ -103,14 +96,14 @@ const poker = require('./poker');
                 return [false, false];
             }
             table = tables[0];
-            let member = table.members.filter(m => {
+            let member = table.members.find(m => {
                 return m.user.attributes.id == ws.user.attributes.id;
-            })[0];
+            });
+
+            member.folded = true;
+            table.update();
             if (table.game.turn == member.position) {
                 table.game.nextTurn();
-            } else {
-                member.folded = true;
-                table.update();
             }
             return [true, true];
         },
