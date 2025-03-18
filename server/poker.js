@@ -249,7 +249,9 @@ class PokerGame {
 
         this.table.update();
         setTimeout(() => {
-            this.turn = this.table.members[(dealerIndex + (this.table.members.length == 2 ? 0 : 3)) % this.table.members.length].position;
+            let nextMember = this.table.members[(dealerIndex + (this.table.members.length == 2 ? 0 : 3)) % this.table.members.length];
+            this.turn = nextMember.position;
+            this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
             this.table.update();
         }, 2000);
     }
@@ -267,6 +269,7 @@ class PokerGame {
         } else {
             newRound = false;
             this.turn = false;
+            this.table.description = `Partida en Juego`;
             this.table.members.forEach(member => {
                 if (!member.folded)
                     member.user.socket.send(JSON.stringify({
@@ -279,9 +282,11 @@ class PokerGame {
         if (newRound)
             new Promise((resolve) => {
                 setTimeout(() => {
-                    this.turn = this.table.members.filter(member => {
+                    let nextMember = this.table.members.filter(member => {
                         return member.dealer
-                    })[0].position;
+                    })[0];
+                    this.turn = nextMember.position;
+                    this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
                     this.table.update();
                     resolve();
                 }, 2000);
@@ -291,13 +296,18 @@ class PokerGame {
     nextTurn() {
         const members = this.table.members.sort((a, b) => a.position - b.position);
         const nextMember = members.find(member => member.position > this.turn) || members[0];
-        if (nextMember.dealer) {
+        if (nextMember.dealer && members.filter(member => {
+            return member.bet < this.currentBet && !member.folded;
+        }).length == 0) {
+            this.table.description = `Partida en Juego`;
             this.turn = false;
             this.nextGameStep();
             return;
         }
-        if (nextMember.folded)
+        if (nextMember.folded) {
             this.nextTurn();
+        }
+        
         this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
         this.turn = nextMember.position;
         this.table.update();
@@ -306,6 +316,7 @@ class PokerGame {
     async bet(member, bet) {
         this.pot += bet;
         member.bet += bet;
+        this.currentBet = this.currentBet > member.bet ? this.currentBet : member.bet;
         member.user.attributes.balance -= bet;
         await member.user.updateBalance();
     }
@@ -320,8 +331,8 @@ class Table {
         this.description = "Esperando Jugadores";
         this.game = null;
         this.blinds = {
-            big: 20,
-            small: 10
+            big: 100,
+            small: 50
         }
     }
 

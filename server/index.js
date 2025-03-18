@@ -69,7 +69,11 @@ const poker = require('./poker');
             let member = table.members.find(m => {
                 return m.user.attributes.id == ws.user.attributes.id;
             });
-            await table.game.bet(member, table.game.currentBet - member.bet);
+            if (table.game.currentBet - member.bet > data.bet)
+                return [false, "No puedes apostar menos de lo que hay en el pozo."]
+            if (data.amount > member.balance && member.balance == 0 && table.game && table.game.blinds.big < member.bet)
+                return [false, "No tienes suficiente saldo."]
+            await table.game.bet(member, data.amount);
             table.game.nextTurn();
             return [true, true];
         },

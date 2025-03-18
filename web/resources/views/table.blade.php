@@ -360,7 +360,7 @@ $disable_sidebar = true;
 </div>
 </div>
 <div style="display: none;" id="buttons" class="mt-10">
-    <div class="card p-5 rounded-pill m-auto" style="width: 500px;">
+    <div class="card p-5 px-10 pb-15 m-auto" style="width: 500px;">
         <div id="kt_modal_create_campaign_budget_slider" class="noUi-sm w-100"></div>
     </div>
     <div class="d-flex mt-4">
@@ -369,7 +369,7 @@ $disable_sidebar = true;
                 <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="bet_button">BET</button>
                 <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="check_button">CHECK</button>
                 <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="fold_button">FOLD</button>
-                <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="raise_button">RAISE</button>
+                <!-- <button class="btn btn-light btn-sm rounded-pill fw-bold text-gray-600" id="raise_button">RAISE</button> -->
             </div>
         </div>
     </div>
@@ -389,27 +389,66 @@ $disable_sidebar = true;
 <script>
     var budgetSlider = document.querySelector("#kt_modal_create_campaign_budget_slider");
     var budgetValue = document.querySelector("#kt_modal_create_campaign_budget_label");
+    var balance = 20000;
+    // balance = 100;
+    // slider.options.range.max = balance;
 
-    noUiSlider.create(budgetSlider, {
-        start: [30],
-        connect: true,
+
+    slider = noUiSlider.create(budgetSlider, {
+        start: [0],
         range: {
-            "min": 1,
-            "max": 500
+            min: 0,
+            max: balance
+        },
+        step: 50,
+        tooltips: true,
+        format: {
+            to: function(value) {
+                // if (balance == value) {
+                //     return `ALL IN (${new Intl.NumberFormat("es-CL", {
+                //         style: "currency",
+                //         currency: "CLP"
+                //     }).format(Math.round(value))})`
+                // } else {
+                //     return new Intl.NumberFormat("es-CL", {
+                //         style: "currency",
+                //         currency: "CLP"
+                //     }).format(Math.round(value));
+                // }
+                return Math.round(Number(value));
+            },
+            from: function(value) {
+                return Number(value);
+            }
         },
         pips: {
-            mode: "values",
-            values: [20, 80],
-            density: 4
-        }
+            mode: 'values',
+            values: [],
+            density: 0,
+        },
     });
 
-    budgetSlider.noUiSlider.on("update", function(values, handle) {
-        budgetValue.innerHTML = Math.round(values[handle]);
-        if (handle) {
-            budgetValue.innerHTML = Math.round(values[handle]);
+    slider.on("update", function(e) {
+        if (!$("#bet_button").is(":visible"))
+            $("#bet_button").fadeIn(500);
+        $("#bet_button").html(`BET [$${e[0]}]`);
+        if (e[0] <= 0) {
+            $("#bet_button").html(`BET`);
+            if ($("#bet_button").is(":visible"))
+                $("#bet_button").fadeOut(500);
         }
+        if (e[0] == balance)
+            $("#bet_button").html(`BET [ALL IN]`);
     });
+
+    function updateBalance(nb, bet) {
+        balance = nb;
+        slider.options.range.max = balance;
+        slider.options.range.min = bet;
+        slider.options.pips.values = [50, balance / 4, balance / 2, balance * 3 / 4, balance];
+        slider.options.start = [bet]
+        slider.updateOptions(slider.options);
+    }
 </script>
 <script>
     class ReconnectingWebSocket {
@@ -522,10 +561,11 @@ $disable_sidebar = true;
                             if (member.me) {
                                 $(`.player-${member.position}`).attr("data-playing", response.response.playing);
                                 $(`.player-${member.position} .player-avatar`).css("background-color", "#ff7f00");
-
+                                slider.set(member.bet);
                                 $("#balance").html(`$${member.user.balance}`);
                                 if (response.response.game && response.response.game.turn == member.position) {
                                     let gamePrice = response.response.game.currentBet - member.bet;
+                                    updateBalance(member.user.balance, gamePrice);
                                     $("#buttons").fadeIn(500);
                                     $("#bet_button").html(`BET [$${gamePrice}]`);
                                     $("#bet_button").prop("disabled", member.balance < gamePrice);
@@ -596,6 +636,13 @@ $disable_sidebar = true;
                             }, 1000);
                         });
                         break;
+                    case "poker.bet":
+                        if (!response.success)
+                            Swal.fire({
+                                text: response.response,
+                                icon: "success"
+                            });
+                        break;
                     case "poker.finish_game":
                         $("#buttons").fadeOut(500);
                         $("#finish_game").fadeIn(500);
@@ -649,7 +696,8 @@ $disable_sidebar = true;
         ws.socket.send(JSON.stringify({
             request: "poker.bet",
             data: {
-                table: "{{$table}}"
+                table: "{{$table}}",
+                amount: slider.get()
             }
         }));
     });
