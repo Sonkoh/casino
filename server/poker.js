@@ -53,27 +53,27 @@ class PokerGame {
             '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
             '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
         };
-    
+
         const sortedCards = cards
             .map(card => ({ ...card, numericValue: valuesMap[card.value] }))
             .sort((a, b) => b.numericValue - a.numericValue);
-    
+
         const countBy = (key) => {
             return sortedCards.reduce((acc, card) => {
                 acc[card[key]] = (acc[card[key]] || 0) + 1;
                 return acc;
             }, {});
         };
-    
+
         const valuesCount = countBy('numericValue');
         const suitsCount = countBy('suit');
-    
+
         // 🃏 Revisar escalera
         const isStraight = () => {
             const uniqueValues = [...new Set(sortedCards.map(c => c.numericValue))];
             for (let i = 0; i <= uniqueValues.length - 5; i++) {
                 if (uniqueValues[i] - uniqueValues[i + 4] === 4) {
-                    return sortedCards.filter(c => 
+                    return sortedCards.filter(c =>
                         uniqueValues.slice(i, i + 5).includes(c.numericValue)
                     ).slice(0, 5);
                 }
@@ -85,7 +85,7 @@ class PokerGame {
             }
             return null;
         };
-    
+
         // 🃏 Revisar color
         const isFlush = () => {
             for (const suit in suitsCount) {
@@ -95,7 +95,7 @@ class PokerGame {
             }
             return null;
         };
-    
+
         // 🃏 Revisar pares, tríos y poker
         const findPairs = () => {
             const pairs = [];
@@ -108,12 +108,12 @@ class PokerGame {
             }
             return { pairs, trips, four };
         };
-    
+
         // Evaluar combinaciones
         const { pairs, trips, four } = findPairs();
         const flush = isFlush();
         const straight = isStraight();
-    
+
         // ♠️♣️♥️♦️ Escalera de color
         if (flush && straight) {
             return {
@@ -121,7 +121,7 @@ class PokerGame {
                 cards: straight
             };
         }
-    
+
         // 👑 Poker
         if (four) {
             return {
@@ -129,7 +129,7 @@ class PokerGame {
                 cards: sortedCards.filter(c => c.numericValue === four)
             };
         }
-    
+
         // 🏠 Full House
         if (trips.length && pairs.length) {
             return {
@@ -139,7 +139,7 @@ class PokerGame {
                 )
             };
         }
-    
+
         // 🌈 Color
         if (flush) {
             return {
@@ -147,7 +147,7 @@ class PokerGame {
                 cards: flush
             };
         }
-    
+
         // ➡️ Escalera
         if (straight) {
             return {
@@ -155,7 +155,7 @@ class PokerGame {
                 cards: straight
             };
         }
-    
+
         // 👌 Trío
         if (trips.length) {
             return {
@@ -163,7 +163,7 @@ class PokerGame {
                 cards: sortedCards.filter(c => c.numericValue === trips[0])
             };
         }
-    
+
         // ✌️ Doble par
         if (pairs.length >= 2) {
             return {
@@ -173,7 +173,7 @@ class PokerGame {
                 )
             };
         }
-    
+
         // ➡️ Par
         if (pairs.length) {
             return {
@@ -181,7 +181,7 @@ class PokerGame {
                 cards: sortedCards.filter(c => c.numericValue === pairs[0])
             };
         }
-    
+
         // 🃏 Carta más alta
         return {
             hand: 'High Card',
@@ -283,7 +283,7 @@ class PokerGame {
             new Promise((resolve) => {
                 setTimeout(() => {
                     let nextMember = this.table.members.filter(member => {
-                        return member.dealer
+                        return !member.dealer
                     })[0];
                     this.turn = nextMember.position;
                     this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
@@ -296,20 +296,23 @@ class PokerGame {
     nextTurn() {
         const members = this.table.members.sort((a, b) => a.position - b.position);
         const nextMember = members.find(member => member.position > this.turn) || members[0];
-        if (nextMember.dealer && members.filter(member => {
-            return member.bet < this.currentBet && !member.folded;
-        }).length == 0) {
+        let game = this;
+        if (members.filter(member => {
+            return member.bet < game.currentBet && !member.folded
+        }).length == 0 && this.table.members.find(member => {
+            return member.dealer;
+        }).position == game.turn) {
             this.table.description = `Partida en Juego`;
             this.turn = false;
             this.nextGameStep();
             return;
         }
-        if (nextMember.folded) {
-            this.nextTurn();
-        }
-        
-        this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
+
         this.turn = nextMember.position;
+        if (nextMember.folded)
+            return this.nextTurn();
+
+        this.table.description = `Es el turno de ${nextMember.user.attributes.username}`;
         this.table.update();
     }
 
